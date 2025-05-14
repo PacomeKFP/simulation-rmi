@@ -1,0 +1,29 @@
+# Dépendances pour le moteur de simulation
+simpy==4.0.1          # Simulation à événements discrets
+numpy==1.24.3         # Calcul numérique
+scipy==1.10.1         # Calculs scientifiques et statistiques
+pandas==2.0.2         # Manipulation et analyse de données
+
+# Interface utilisateur et visualisation
+dash==2.9.3           # Framework pour application web interactive
+dash-bootstrap-components==1.4.1  # Composants Bootstrap pour Dash
+plotly==5.14.1        # Visualisations interactives
+dash-leaflet==0.1.23  # Cartographie pour la visualisation de la topologie
+dash-cytoscape==0.2.0 # Visualisation de réseau/graphe
+dash-daq==0.5.0       # Composants d'instrumentation pour dashboard
+
+# Visualisation statique pour rapports exportables
+matplotlib==3.7.1     # Graphiques statiques
+seaborn==0.12.2       # Visualisations statistiques avancées
+
+# Gestion des tâches et parallélisation
+dask==2023.3.2        # Parallélisation des calculs pour simulations multiples
+joblib==1.2.0         # Parallélisation légère
+
+# Tests et qualité du code
+pytest==7.3.1         # Tests unitaires
+flake8==6.0.0         # Vérification de la qualité du code
+
+# Exportation et sauvegarde
+openpyxl==3.1.2       # Export Excel
+kaleido==0.2.1        # Export de graphiques Plotly statiques

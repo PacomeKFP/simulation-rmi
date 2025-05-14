@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation Réseau 4G/LTE - Impact Gestion ECM</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="main-header">
+            <h1>Simulation Réseau 4G/LTE - Impact de la Gestion ECM</h1>
+            <div class="simulation-status">
+                <span id="simulation-state">En attente</span>
+                <div id="progress-container">
+                    <div id="progress-bar"></div>
+                </div>
+            </div>
+        </header>
+
+        <nav class="main-nav">
+            <ul>
+                <li><a href="#" data-tab="configuration" class="active">Configuration</a></li>
+                <li><a href="#" data-tab="topologie">Topologie</a></li>
+                <li><a href="#" data-tab="rnti">Gestion RNTI</a></li>
+                <li><a href="#" data-tab="energie">Consommation Énergétique</a></li>
+                <li><a href="#" data-tab="latence">Latence</a></li>
+                <li><a href="#" data-tab="debit">Débit</a></li>
+                <li><a href="#" data-tab="comparaison">Comparaison</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <!-- Onglet Configuration -->
+            <section id="configuration" class="tab-content active">
+                <h2>Configuration de la Simulation</h2>
+                
+                <div class="config-grid">
+                    <div class="config-section">
+                        <h3>Paramètres Généraux</h3>
+                        <div class="form-group">
+                            <label for="T_sim">Durée de simulation:</label>
+                            <input type="text" id="T_sim" value="86400" disabled> <span>secondes (24h)</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="T_warmup">Période de chauffe:</label>
+                            <input type="number" id="T_warmup" value="3600" min="0"> <span>secondes</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="N_runs">Nombre d'exécutions:</label>
+                            <input type="number" id="N_runs" value="10" min="1" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="delta_t_global">Intervalle global:</label>
+                            <input type="number" id="delta_t_global" value="300" disabled> <span>secondes (5 min)</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="TTI">TTI:</label>
+                            <input type="text" id="TTI" value="0.001" disabled> <span>secondes (1 ms)</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Paramètres de Topologie</h3>
+                        <div class="form-group">
+                            <label for="R">Rayon de la zone:</label>
+                            <input type="number" id="R" value="2.5" step="0.1" min="0.1"> <span>km</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="N_eNB">Nombre d'eNodeBs:</label>
+                            <input type="number" id="N_eNB" value="19" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="sigma_eNB">Écart-type placement eNB:</label>
+                            <input type="number" id="sigma_eNB" value="1.0" step="0.1" min="0.1"> <span>km</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="N_UE">Nombre d'UEs:</label>
+                            <input type="number" id="N_UE" value="70000" min="1000">
+                        </div>
+                        <div class="form-group">
+                            <label for="sigma_UE">Écart-type placement UE:</label>
+                            <input type="number" id="sigma_UE" value="0.8" step="0.1" min="0.1"> <span>km</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="Mobility_Model">Modèle de mobilité:</label>
+                            <select id="Mobility_Model">
+                                <option value="Static">Statique</option>
+                                <option value="RandomWaypointInCircle">Random Waypoint</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Paramètres ECM</h3>
+                        <div class="form-group">
+                            <label for="T_inactivity_C_I">Timer d'inactivité:</label>
+                            <input type="number" id="T_inactivity_C_I" value="10" min="1"> <span>secondes</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="L_RRC_Setup">Délai RRC Setup:</label>
+                            <input type="number" id="L_RRC_Setup" value="0.1" step="0.01" min="0.01"> <span>secondes</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="L_RRC_Release">Délai RRC Release:</label>
+                            <input type="number" id="L_RRC_Release" value="0.05" step="0.01" min="0.01"> <span>secondes</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="L_Paging">Délai de Paging:</label>
+                            <input type="number" id="L_Paging" value="0.05" step="0.01" min="0.01"> <span>secondes</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Paramètres de Scheduling</h3>
+                        <div class="form-group">
+                            <label for="N_RB">Resource Blocks par TTI:</label>
+                            <input type="number" id="N_RB" value="100" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label for="R_RB">Débit par Resource Block:</label>
+                            <input type="number" id="R_RB" value="1500" min="1"> <span>bits/TTI</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="W_PF">Taille fenêtre PF:</label>
+                            <input type="number" id="W_PF" value="100" min="1"> <span>TTI</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Paramètres Énergétiques</h3>
+                        <div class="form-group">
+                            <label for="P_Idle">Puissance en IDLE:</label>
+                            <input type="number" id="P_Idle" value="5" min="0"> <span>mW</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="P_Connected_Base">Puissance base CONNECTED:</label>
+                            <input type="number" id="P_Connected_Base" value="100" min="0"> <span>mW</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="P_Tx_Active">Surcoût Tx:</label>
+                            <input type="number" id="P_Tx_Active" value="150" min="0"> <span>mW</span>
+                        </div>
+                        <div class="form-group">
+                            <label for="P_Rx_Active">Surcoût Rx:</label>
+                            <input type="number" id="P_Rx_Active" value="80" min="0"> <span>mW</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <h3>Scénarios</h3>
+                        <div class="scenario-selection">
+                            <div class="scenario">
+                                <input type="checkbox" id="scenario-A1" checked>
+                                <label for="scenario-A1">A1: Avec ECM + Round Robin</label>
+                            </div>
+                            <div class="scenario">
+                                <input type="checkbox" id="scenario-A2" checked>
+                                <label for="scenario-A2">A2: Avec ECM + Proportional Fair</label>
+                            </div>
+                            <div class="scenario">
+                                <input type="checkbox" id="scenario-B1" checked>
+                                <label for="scenario-B1">B1: Sans ECM + Round Robin</label>
+                            </div>
+                            <div class="scenario">
+                                <input type="checkbox" id="scenario-B2" checked>
+                                <label for="scenario-B2">B2: Sans ECM + Proportional Fair</label>
+                            </div>
+                        </div>
+                        <button id="start-simulation" class="btn-primary">Démarrer la Simulation</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Onglet Topologie -->
+            <section id="topologie" class="tab-content">
+                <h2>Topologie du Réseau</h2>
+                <div class="topology-controls">
+                    <button id="topology-zoom-in" class="btn-icon">+</button>
+                    <button id="topology-zoom-out" class="btn-icon">-</button>
+                    <button id="topology-reset" class="btn">Réinitialiser</button>
+                    <div class="form-group">
+                        <label for="topology-display">Afficher:</label>
+                        <select id="topology-display">
+                            <option value="all">Tous les éléments</option>
+                            <option value="enb-only">eNodeBs uniquement</option>
+                            <option value="connected">UEs connectés uniquement</option>
+                            <option value="idle">UEs en IDLE uniquement</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Instant T:</label>
+                        <input type="range" id="topology-time" min="0" max="86400" step="300" value="0">
+                        <span id="topology-time-display">00:00:00</span>
+                    </div>
+                </div>
+                <div class="topology-container">
+                    <div id="topology-map"></div>
+                    <div class="topology-legend">
+                        <div class="legend-item">
+                            <div class="symbol enb-symbol"></div>
+                            <span>eNodeB</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="symbol ue-connected-symbol"></div>
+                            <span>UE - CONNECTED</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="symbol ue-idle-symbol"></div>
+                            <span>UE - IDLE</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="topology-stats">
+                    <div class="stat-card">
+                        <h3>UEs Total</h3>
+                        <div id="stat-ue-total" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>UEs CONNECTED</h3>
+                        <div id="stat-ue-connected" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>UEs IDLE</h3>
+                        <div id="stat-ue-idle" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Utilisation RNTI</h3>
+                        <div id="stat-rnti-usage" class="stat-value">0%</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Onglet Gestion RNTI -->
+            <section id="rnti" class="tab-content">
+                <h2>Gestion des Identifiants Radio (RNTI)</h2>
+                <div class="section-controls">
+                    <div class="scenario-selector">
+                        <label for="rnti-scenario">Scénario:</label>
+                        <select id="rnti-scenario">
+                            <option value="A1">A1: Avec ECM + Round Robin</option>
+                            <option value="A2">A2: Avec ECM + Proportional Fair</option>
+                            <option value="B1">B1: Sans ECM + Round Robin</option>
+                            <option value="B2">B2: Sans ECM + Proportional Fair</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Utilisation RNTI au cours du temps</h3>
+                        <div class="chart-container">
+                            <canvas id="rnti-usage-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>UEs connectés par eNodeB</h3>
+                        <div class="chart-container">
+                            <canvas id="connected-ues-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Distribution de l'occupation RNTI</h3>
+                        <div class="chart-container">
+                            <canvas id="rnti-distribution-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>UEs uniques servis par eNodeB (24h)</h3>
+                        <div class="chart-container">
+                            <canvas id="unique-ues-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-table">
+                    <h3>Comparaison des Métriques RNTI entre Scénarios</h3>
+                    <table id="rnti-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Métrique</th>
+                                <th>A1: Avec ECM + RR</th>
+                                <th>A2: Avec ECM + PF</th>
+                                <th>B1: Sans ECM + RR</th>
+                                <th>B2: Sans ECM + PF</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>UEs simultanément connectés (moyenne)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>UEs simultanément connectés (max)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>UEs uniques servis / eNB (24h)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Taux d'utilisation RNTI (moyenne)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Taux d'utilisation RNTI (max)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Onglet Consommation Énergétique -->
+            <section id="energie" class="tab-content">
+                <h2>Consommation Énergétique</h2>
+                <div class="section-controls">
+                    <div class="scenario-selector">
+                        <label for="energy-scenario">Scénario:</label>
+                        <select id="energy-scenario">
+                            <option value="A1">A1: Avec ECM + Round Robin</option>
+                            <option value="A2">A2: Avec ECM + Proportional Fair</option>
+                            <option value="B1">B1: Sans ECM + Round Robin</option>
+                            <option value="B2">B2: Sans ECM + Proportional Fair</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Consommation énergétique moyenne sur 24h</h3>
+                        <div class="chart-container">
+                            <canvas id="energy-consumption-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Distribution de l'énergie consommée par UE</h3>
+                        <div class="chart-container">
+                            <canvas id="energy-distribution-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Répartition du temps dans chaque état (Avec ECM)</h3>
+                        <div class="chart-container">
+                            <canvas id="state-time-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Évolution énergétique sur 24h</h3>
+                        <div class="chart-container">
+                            <canvas id="energy-timeline-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-table">
+                    <h3>Comparaison de la Consommation Énergétique entre Scénarios</h3>
+                    <table id="energy-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Métrique</th>
+                                <th>A1: Avec ECM + RR</th>
+                                <th>A2: Avec ECM + PF</th>
+                                <th>B1: Sans ECM + RR</th>
+                                <th>B2: Sans ECM + PF</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Énergie moyenne par UE (J)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Écart-type de l'énergie consommée</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Temps en IDLE (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>N/A</td>
+                                <td>N/A</td>
+                            </tr>
+                            <tr>
+                                <td>Temps en CONNECTED (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>100%</td>
+                                <td>100%</td>
+                            </tr>
+                            <tr>
+                                <td>Économie d'énergie vs Sans ECM (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>0%</td>
+                                <td>0%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Onglet Latence -->
+            <section id="latence" class="tab-content">
+                <h2>Métriques de Latence</h2>
+                <div class="section-controls">
+                    <div class="scenario-selector">
+                        <label for="latency-scenario">Scénario:</label>
+                        <select id="latency-scenario">
+                            <option value="A1">A1: Avec ECM + Round Robin</option>
+                            <option value="A2">A2: Avec ECM + Proportional Fair</option>
+                            <option value="B1">B1: Sans ECM + Round Robin</option>
+                            <option value="B2">B2: Sans ECM + Proportional Fair</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Latence de transition IDLE → CONNECTED</h3>
+                        <div class="chart-container">
+                            <canvas id="idle-to-connected-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Latence de mise en file d'attente</h3>
+                        <div class="chart-container">
+                            <canvas id="queuing-latency-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>CDF de la latence du premier paquet</h3>
+                        <div class="chart-container">
+                            <canvas id="first-packet-latency-cdf-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Distribution des latences par type</h3>
+                        <div class="chart-container">
+                            <canvas id="latency-boxplot-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-table">
+                    <h3>Comparaison des Métriques de Latence entre Scénarios</h3>
+                    <table id="latency-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Métrique</th>
+                                <th>A1: Avec ECM + RR</th>
+                                <th>A2: Avec ECM + PF</th>
+                                <th>B1: Sans ECM + RR</th>
+                                <th>B2: Sans ECM + PF</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Latence IDLE → CONNECTED (moyenne, ms)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>N/A</td>
+                                <td>N/A</td>
+                            </tr>
+                            <tr>
+                                <td>Latence de mise en file d'attente (moyenne, ms)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Latence du premier paquet (moyenne, ms)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Latence du premier paquet (95ème percentile, ms)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Onglet Débit -->
+            <section id="debit" class="tab-content">
+                <h2>Métriques de Débit et Satisfaction</h2>
+                <div class="section-controls">
+                    <div class="scenario-selector">
+                        <label for="throughput-scenario">Scénario:</label>
+                        <select id="throughput-scenario">
+                            <option value="A1">A1: Avec ECM + Round Robin</option>
+                            <option value="A2">A2: Avec ECM + Proportional Fair</option>
+                            <option value="B1">B1: Sans ECM + Round Robin</option>
+                            <option value="B2">B2: Sans ECM + Proportional Fair</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>Distribution du débit utile par UE</h3>
+                        <div class="chart-container">
+                            <canvas id="goodput-distribution-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Débit total du réseau au cours du temps</h3>
+                        <div class="chart-container">
+                            <canvas id="network-throughput-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Packet Delivery Ratio (PDR)</h3>
+                        <div class="chart-container">
+                            <canvas id="pdr-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Occupation des buffers</h3>
+                        <div class="chart-container">
+                            <canvas id="buffer-occupancy-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-table">
+                    <h3>Comparaison des Métriques de Débit entre Scénarios</h3>
+                    <table id="throughput-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Métrique</th>
+                                <th>A1: Avec ECM + RR</th>
+                                <th>A2: Avec ECM + PF</th>
+                                <th>B1: Sans ECM + RR</th>
+                                <th>B2: Sans ECM + PF</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Débit moyen par UE (Mbps)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Débit total du réseau (Gbps)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Packet Delivery Ratio (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Occupation moyenne des buffers (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Occupation maximale des buffers (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Onglet Comparaison -->
+            <section id="comparaison" class="tab-content">
+                <h2>Comparaison Globale des Scénarios</h2>
+                
+                <div class="radar-comparison">
+                    <h3>Comparaison Multi-Critères</h3>
+                    <div class="chart-container large-chart">
+                        <canvas id="radar-comparison-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="metrics-summary">
+                    <h3>Synthèse des Performances</h3>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <h4>Efficacité RNTI</h4>
+                            <div class="chart-container">
+                                <canvas id="rnti-efficiency-chart"></canvas>
+                            </div>
+                            <p>Ce graphique compare le nombre d'UEs uniques servis vs. la taille du pool RNTI, démontrant l'efficacité de la réutilisation des identifiants radio.</p>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <h4>Compromis Énergie-Latence</h4>
+                            <div class="chart-container">
+                                <canvas id="energy-latency-chart"></canvas>
+                            </div>
+                            <p>Visualisation du compromis entre la consommation énergétique et la latence moyenne du premier paquet pour chaque scénario.</p>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <h4>Comparaison QoS</h4>
+                            <div class="chart-container">
+                                <canvas id="qos-chart"></canvas>
+                            </div>
+                            <p>Comparaison de la qualité de service (débit et PDR) entre les différents scénarios.</p>
+                        </div>
+                        
+                        <div class="summary-card">
+                            <h4>Bénéfice du Mode ECM</h4>
+                            <div class="chart-container">
+                                <canvas id="ecm-benefit-chart"></canvas>
+                            </div>
+                            <p>Analyse quantitative des bénéfices apportés par la gestion ECM en termes d'économie d'énergie et de capacité réseau.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-table full-width">
+                    <h3>Tableau Récapitulatif des Performances</h3>
+                    <table id="global-comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Catégorie</th>
+                                <th>Métrique</th>
+                                <th>A1: Avec ECM + RR</th>
+                                <th>A2: Avec ECM + PF</th>
+                                <th>B1: Sans ECM + RR</th>
+                                <th>B2: Sans ECM + PF</th>
+                                <th>Impact ECM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="category-row">
+                                <td rowspan="3">Gestion RNTI</td>
+                                <td>UEs connectés simultanément (max)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>UEs uniques servis / eNB</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Taux d'utilisation RNTI (moyenne)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            
+                            <tr class="category-row">
+                                <td rowspan="2">Énergie</td>
+                                <td>Consommation moyenne par UE (J)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Économie relative (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>0%</td>
+                                <td>0%</td>
+                                <td>-</td>
+                            </tr>
+                            
+                            <tr class="category-row">
+                                <td rowspan="3">Latence</td>
+                                <td>Latence IDLE → CONNECTED (ms)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>N/A</td>
+                                <td>N/A</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Latence du premier paquet (ms)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Latence de mise en file d'attente (ms)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            
+                            <tr class="category-row">
+                                <td rowspan="3">QoS</td>
+                                <td>Débit moyen par UE (Mbps)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Débit total du réseau (Gbps)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <td>Packet Delivery Ratio (%)</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="conclusion-section">
+                    <h3>Conclusion et Recommandations</h3>
+                    <div id="conclusion-text">
+                        <p>Les résultats de simulation seront résumés ici après l'exécution complète.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="main-footer">
+            <p>Simulation de Réseau 4G/LTE - Impact de la Gestion ECM © 2025</p>
+        </footer>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title">Titre</h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <script src="simulation.js"></script>
+</body>
+</html>
